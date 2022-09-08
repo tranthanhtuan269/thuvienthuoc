@@ -109,31 +109,35 @@ class HomeController extends Controller
                         ]);
                     }
                 }else if (str_contains($attr->innertext, 'Dạng bào chế:')) { 
-                    // Dạng bào chế:
-                    $dang_bao_che = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Dạng bào chế:')){
+                        // Dạng bào chế:
+                        $dang_bao_che = $attr->find('td', 1)->innertext;
 
-                    $dangbaoche = Dangbaoche::where('ten', $dang_bao_che)->first();
+                        $dangbaoche = Dangbaoche::where('ten', $dang_bao_che)->first();
 
-                    if(!isset($dangbaoche)){
-                        $dangbaoche = new Dangbaoche;
-                        $dangbaoche->ten = $dang_bao_che;
-                        $dangbaoche->save();
+                        if(!isset($dangbaoche)){
+                            $dangbaoche = new Dangbaoche;
+                            $dangbaoche->ten = $dang_bao_che;
+                            $dangbaoche->save();
+                        }
+
+                        $thuoc->dangbaoche_id = $dangbaoche->id;
                     }
-
-                    $thuoc->dangbaoche_id = $dangbaoche->id;
                 }else if (str_contains($attr->innertext, 'Quy cách:')) { 
-                    // Quy cách:
-                    $quy_cach = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Quy cách:')){
+                        // Quy cách:
+                        $quy_cach = $attr->find('td', 1)->innertext;
 
-                    $quycach = Quycach::where('ten', $quy_cach)->first();
+                        $quycach = Quycach::where('ten', $quy_cach)->first();
 
-                    if(!isset($quycach)){
-                        $quycach = new Quycach;
-                        $quycach->ten = $quy_cach;
-                        $quycach->save();
+                        if(!isset($quycach)){
+                            $quycach = new Quycach;
+                            $quycach->ten = $quy_cach;
+                            $quycach->save();
+                        }
+
+                        $thuoc->quycach_id = $quycach->id;
                     }
-
-                    $thuoc->quycach_id = $quycach->id;
                 }else if (str_contains($attr->innertext, 'Chỉ định:')) { 
                     // Chỉ định:
                     $chi_dinh = $attr->find('td', 1);
@@ -141,33 +145,37 @@ class HomeController extends Controller
                     $thuoc->chidinh = $chi_dinh->innertext;
 
                 }else if (str_contains($attr->innertext, 'Xuất xứ thương hiệu:')) { 
-                    // Xuất xứ thương hiệu:
-                    $xuatxuthuonghieu = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Xuất xứ thương hiệu:')){
+                        // Xuất xứ thương hiệu:
+                        $xuatxuthuonghieu = $attr->find('td', 1)->innertext;
 
-                    $xuatxu = Xuatxu::where('ten', $xuatxuthuonghieu)->first();
+                        $xuatxu = Xuatxu::where('ten', $xuatxuthuonghieu)->first();
 
-                    if(!isset($xuatxu)){
-                        $xuatxu = new Xuatxu;
-                        $xuatxu->ten = $xuatxuthuonghieu;
-                        $xuatxu->save();
+                        if(!isset($xuatxu)){
+                            $xuatxu = new Xuatxu;
+                            $xuatxu->ten = $xuatxuthuonghieu;
+                            $xuatxu->save();
+                        }
+
+                        $thuoc->xuatxu_id = $xuatxu->id;
                     }
-
-                    $thuoc->xuatxu_id = $xuatxu->id;
                 }else if (str_contains($attr->innertext, 'Nhà sản xuất:')) { 
-                    // Nhà sản xuất:
-                    $nha_san_xuat = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Nhà sản xuất:')){
+                        // Nhà sản xuất:
+                        $nha_san_xuat = $attr->find('td', 1)->innertext;
 
-                    $nhasanxuat = Nhasanxuat::where('ten', $nha_san_xuat)->first();
+                        $nhasanxuat = Nhasanxuat::where('ten', $nha_san_xuat)->first();
 
-                    if(!isset($nhasanxuat)){
-                        $nhasanxuat = new Nhasanxuat;
-                        $nhasanxuat->ten = $nha_san_xuat;
-                        $nhasanxuat->save();
+                        if(!isset($nhasanxuat)){
+                            $nhasanxuat = new Nhasanxuat;
+                            $nhasanxuat->ten = $nha_san_xuat;
+                            $nhasanxuat->save();
+                        }
+
+                        \DB::table('thuoc_nhasanxuat')->insertOrIgnore([
+                            ['thuoc_id' => $thuoc->id, 'nhasanxuat_id' => $nhasanxuat->id]
+                        ]);
                     }
-
-                    \DB::table('thuoc_nhasanxuat')->insertOrIgnore([
-                        ['thuoc_id' => $thuoc->id, 'nhasanxuat_id' => $nhasanxuat->id]
-                    ]);
                 }else if (str_contains($attr->innertext, 'Công dụng:')) { 
                     // Công dụng:
                     $cong_dung = $attr->find('td', 1)->innertext;
@@ -184,33 +192,41 @@ class HomeController extends Controller
 
                     $thuoc->sodangky = $so_dang_ky;
                 }else if (str_contains($attr->innertext, 'Nước sản xuất:')) { 
-                    // Nước sản xuất:
-                    $noi_san_xuat = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Nước sản xuất:')){
+                        // Nước sản xuất:
+                        $noi_san_xuat = $attr->find('td', 1)->innertext;
 
-                    $noisanxuat = Noisanxuat::where('ten', $noi_san_xuat)->first();
+                        $noisanxuat = Noisanxuat::where('ten', $noi_san_xuat)->first();
 
-                    if(!isset($noisanxuat)){
-                        $noisanxuat = new Noisanxuat;
-                        $noisanxuat->ten = $noi_san_xuat;
-                        $noisanxuat->save();
+                        if(!isset($noisanxuat)){
+                            $noisanxuat = new Noisanxuat;
+                            $noisanxuat->ten = $noi_san_xuat;
+                            $noisanxuat->save();
+                        }
+
+                        $thuoc->noisanxuat_id = $noisanxuat->id;
                     }
-
-                    $thuoc->noisanxuat_id = $noisanxuat->id;
                 }else if (str_contains($attr->innertext, 'Độ tuổi:')) { 
-                    // Lưu ý:
-                    $do_tuoi = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Độ tuổi:')){
+                        // Lưu ý:
+                        $do_tuoi = $attr->find('td', 1)->innertext;
 
-                    $thuoc->dotuoi = $do_tuoi;
+                        $thuoc->dotuoi = $do_tuoi;
+                    }
                 }else if (str_contains($attr->innertext, 'Cảnh báo:')) { 
-                    // Lưu ý:
-                    $canh_bao = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Cảnh báo:')){
+                        // Lưu ý:
+                        $canh_bao = $attr->find('td', 1)->innertext;
 
-                    $thuoc->canhbao = $canh_bao;
+                        $thuoc->canhbao = $canh_bao;
+                    }
                 }else if (str_contains($attr->innertext, 'Chống chỉ định:')) { 
-                    // Lưu ý:
-                    $chong_chi_dinh = $attr->find('td', 1)->innertext;
+                    if(str_contains($attr->find('td', 0)->innertext, 'Chống chỉ định:')){
+                        // Lưu ý:
+                        $chong_chi_dinh = $attr->find('td', 1)->innertext;
 
-                    $thuoc->chongchidinh = $chong_chi_dinh;
+                        $thuoc->chongchidinh = $chong_chi_dinh;
+                    }
                 }
             }
 
