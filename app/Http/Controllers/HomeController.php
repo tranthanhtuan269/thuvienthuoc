@@ -14,6 +14,7 @@ use App\Models\Noisanxuat;
 use App\Models\Quycach;
 use App\Models\Thuoccanketoa;
 use App\Models\Xuatxu;
+use App\Helpers\Helper;
 
 class HomeController extends Controller
 {
@@ -293,5 +294,12 @@ class HomeController extends Controller
 
     public function processThuoc(){
         
+    }
+
+    public function test(){
+        $source = 'vi';
+        $target = 'en';
+        $text = 'Xin chào';
+        dd(Helper::requestTranslation($source, $target, $text));
     }
 }

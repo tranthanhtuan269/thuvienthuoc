@@ -19,3 +19,4 @@ Route::get('/', [HomeController::class, 'index']);
 Route::get('/crawl', [HomeController::class, 'crawl']);
 Route::get('/crawl-thuoc', [HomeController::class, 'crawl2']);
 Route::get('/process', [HomeController::class, 'processThuoc']);
+Route::get('/test', [HomeController::class, 'test']);
