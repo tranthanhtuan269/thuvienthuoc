@@ -4,6 +4,16 @@ namespace App\Helpers;
 
 Class Helper{
 
+    public static function checkFolder($name){
+        $return = false;
+        if (!file_exists($name)) {
+            mkdir($name, 0777);
+        } else {
+            $return = true;
+        }
+        return $return;
+    }
+
     public static function requestTranslation($source, $target, $text){
         // Google translate URL
         $url = "https://translate.google.com/translate_a/single?client=at&dt=t&dt=ld&dt=qca&dt=rm&dt=bd&dj=1&hl=es-ES&ie=UTF-8&oe=UTF-8&inputm=2&otf=2&iid=1dd3b944-fa62-4b55-b330-74909a99969e";

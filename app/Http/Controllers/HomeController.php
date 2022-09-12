@@ -308,6 +308,39 @@ class HomeController extends Controller
         header("refresh: 0.1");
     }
 
+    public function crawl3(){
+        include_once('simple_html_dom.php');
+
+        $thuocs = Thuoc::where('status', -1)->take(100)->get();
+        foreach($thuocs as $thuoc){
+            $html = file_get_html('https://nhathuoclongchau.com' . $thuoc->link);
+            $bigImages = $html->find('.swiper-slide');
+            $dir = public_path() . '/images/';
+            $links = [];
+            Helper::checkFolder($dir . "$thuoc->id");
+            foreach($bigImages as $image){
+                if(isset($image->attr['data-src'])){
+                    $imageUrl = $image->attr['data-src'];
+                    // $imageUrl = $imageUrl . '_large.JPG';
+                    $imageName = last(explode("/", $imageUrl));
+                    file_put_contents($dir . "$thuoc->id/" . $imageName, file_get_contents($imageUrl));
+                    $links[] = "/$thuoc->id/" . $imageName;
+                }
+            }
+
+            $thuoc->images = json_encode($links);
+            $thuoc->status = 1;
+            $thuoc->save();
+            // clean up memory
+            $html->clear();
+            unset($html);
+        }
+
+        header("refresh: 0.1");
+
+        // dd($bigImage);
+    }
+
     public function processThuoc(){
         
     }
