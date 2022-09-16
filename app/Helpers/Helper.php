@@ -22,18 +22,18 @@ Class Helper{
             'tl' => urlencode($target),
             'q' => urlencode($text)
         );
-    
+
         // URL-ify the data for the POST
         $fields_string = "";
         foreach ($fields as $key => $value) {
             $fields_string .= $key . '=' . $value . '&';
         }
-    
+
         rtrim($fields_string, '&');
-    
+
         // Open connection
         $ch = curl_init();
-    
+
         // Set the url, number of POST vars, POST data
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, count($fields));
@@ -47,8 +47,55 @@ Class Helper{
         // Execute post
         $result = curl_exec($ch);
         curl_close($ch);
-    
+
         return $result;
+    }
+
+    public static function curl_image($url,$saveto){
+        $ch = curl_init ($url);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_BINARYTRANSFER,1);
+        $raw=curl_exec($ch);
+        curl_close ($ch);
+        if(file_exists($saveto)){
+            unlink($saveto);
+        }
+        $fp = fopen($saveto,'x');
+        fwrite($fp, $raw);
+        fclose($fp);
+    }
+
+    public function linkError () {
+        $pages = \DB::table('page_errors')->where('status', 0)->take(5)->get();
+        foreach ($pages as $i) {
+            $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i->page);
+            if($html) {
+                $stories = $html->find('.truyen-title a');
+                foreach($stories as $story) {
+                    $link =  $story->href;
+                    $slug = preg_replace('(https://truyenfull.vn/)','', $link );
+                    $slug = preg_replace('(/)','', $slug );
+                    echo $link . "</br>";
+                    flush();
+                    \DB::table('links')->insertOrIgnore([
+                        'link' => $link,
+                        'status' => 1,
+                        'slug' => $slug,
+                    ]);
+                }
+                $pages = \DB::table('page_errors')->where('id',$i->id)->update([
+                    'status' => 1,
+                ]);
+                echo "</br>";
+                echo "--------------------</br>";
+                echo "page" . $i . "</br>";
+                echo "--------------------</br>";
+                $html->clear();
+                unset($html);
+            }
+        }
+        Helper::linkError();
     }
 
 }

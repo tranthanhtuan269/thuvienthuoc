@@ -22,6 +22,174 @@ class HomeController extends Controller
         return view('index');
     }
 
+    public function crawlLink(){
+        include_once('simple_html_dom.php');
+
+        for($i = 1; $i < 1091;$i++) {
+            $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i);
+            if($html) {
+                $stories = $html->find('.truyen-title a');
+                foreach($stories as $story) {
+                    $link =  $story->href;
+                    $slug = preg_replace('(https://truyenfull.vn/)','', $link );
+                    $slug = preg_replace('(/)','', $slug );
+                    echo $link . "</br>";
+                    flush();
+                    \DB::table('links')->insertOrIgnore([
+                        'link' => $link,
+                        'status' => 1,
+                        'slug' => $slug,
+                    ]);
+                }
+                echo "</br>";
+                echo "--------------------</br>";
+                echo "page" . $i . "</br>";
+                echo "--------------------</br>";
+                $html->clear();
+                unset($html);
+            }else{
+                \DB::table('page_errors')->insert([
+                    'page' => $i,
+                ]);
+            }
+            sleep(0.5);
+        }
+    }
+
+    public function linkError () {
+        include_once('simple_html_dom.php');
+
+        $pages = \DB::table('page_errors')->where('status', 0)->take(5)->get();
+        foreach ($pages as $i) {
+            $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i->page);
+            if($html) {
+                $stories = $html->find('.truyen-title a');
+                foreach($stories as $story) {
+                    $link =  $story->href;
+                    $slug = preg_replace('(https://truyenfull.vn/)','', $link );
+                    $slug = preg_replace('(/)','', $slug );
+                    echo $link . "</br>";
+                    flush();
+                    \DB::table('links')->insertOrIgnore([
+                        'link' => $link,
+                        'status' => 1,
+                        'slug' => $slug,
+                    ]);
+                }
+                $pages = \DB::table('page_errors')->where('id',$i->id)->update([
+                    'status' => 1,
+                ]);
+                echo "</br>";
+                echo "--------------------</br>";
+                echo "page" . $i->page . "</br>";
+                echo "--------------------</br>";
+                $html->clear();
+                unset($html);
+            }
+        }
+        sleep(0.5);
+        return back();
+    }
+
+    public function detail(){
+        include_once('simple_html_dom.php');
+
+        $links = \DB::table('links')->where('status', 1)->take(5)->get();
+        foreach($links as $link) {
+            $slug = $link->slug;
+            $html = file_get_html("https://truyenfull.vn/". $slug);
+            if($html) {
+                $check_slug = \DB::table('stories')->where('slug',$slug)->first();
+                if(!$check_slug) {
+                    //name
+                    $name = $html->find('h3.title', 0)->innertext;
+
+                    //image
+                    $image = $html->find('.books img', 0)->src;
+                    Helper::curl_image($image, 'image-avatars/' . basename($image));
+
+                    //full
+                    $full_text = $html->find('.info div',3)->find('span',0)->innertext;
+                    if ($full_text == "Full"){
+                        $full = 1;
+                    }else {
+                        $full = 0;
+                    }
+
+                    //author
+                    $author_slug = $html->find('[itemprop="author"]', 0)->href;
+                    $author_slug = preg_replace('(https://truyenfull.vn/tac-gia/)', '', $author_slug);
+                    $author_slug = preg_replace('(/)', '', $author_slug);
+                    $author = \DB::table('authors')->where('slug',$author_slug)->first();
+                    if($author){
+                        $author_id = $author->id;
+                    }else{
+                        $author_name = $html->find('[itemprop="author"]', 0)->plaintext;
+                        \DB::table('authors')->insert([
+                            'name' => $author_name,
+                            'slug' => $author_slug,
+                        ]);
+                        $author_new = \DB::table('authors')->where('slug',$author_slug)->first();
+                        $author_id = $author_new->id;
+                    }
+
+
+                    //rate
+                    if($html->find('.rate .small', 0)->plaintext === 'Chưa có đánh giá nào, bạn hãy là người đầu tiên đánh giá truyện này!'){
+                        $rate = 0;
+                        $number_of_votes = 0;
+                    }else{
+                        $rate = $html->find('[itemprop="ratingValue"]', 0)->plaintext;
+                        $number_of_votes = $html->find('[itemprop="ratingCount"]', 0)->plaintext;
+                    }
+
+                    //des
+                    $content = $html->find('.desc-text', 0)->innertext;
+                    $content = preg_replace('(<div.*?class=.*?>.*?</div>)','', $content);
+                    $content = preg_replace('(<a.*?class=.*?>.*?</a>)','', $content);
+
+                    // dd($content,$slug,$name,$author_id,$rate,$number_of_votes);
+
+                    //add
+                    $total_chapter = 0;
+                    if($html->find('.list-chapter li',0)){
+                        $link = $html->find('.list-chapter li',0)->find('a',0)->href ;
+                        $link_chapter_first = preg_replace('(https://truyenfull.vn/' . $slug .  ')','', $link);
+                        $link_chapter_first = preg_replace('(/)','', $link_chapter_first);
+                        \DB::table('stories')->insertOrIgnore([
+                            'name' => $name,
+                            'image' => basename($image),
+                            'slug' => $slug,
+                            'rate' => $rate,
+                            'number_of_votes' => $number_of_votes,
+                            'author_id' => $author_id,
+                            'full' => $full,
+                            'content' => $content,
+                            'type' => 1,
+                            'url_first_chapter' => $link_chapter_first,
+                        ]);
+                        $story = \DB::table('stories')->where('slug',$slug)->first();
+                        $types = $html->find('.info [itemprop="genre"]');
+                        foreach($types as $type){
+                            $name_type = $type->plaintext;
+                            $type = \DB::table('types')->where('name',$name_type)->first();
+                            \DB::table('type_story')->insertOrIgnore([
+                                'type_id' => $type->id,
+                                'story_id' => $story->id,
+                            ]);
+                        }
+                    }
+                    // \DB::table('links')->where('slug',$slug)->update([
+                    //     'status' => 0,
+                    // ]);
+                }
+            }else{
+            }
+            $html->clear();
+            unset($html);
+        }
+    }
+
     public function crawl(){
         include_once('simple_html_dom.php');
 
@@ -40,7 +208,7 @@ class HomeController extends Controller
                 foreach($a_list as $e){
                     $arr[] = ['link' => $e->href];
                 }
-                
+
                 \DB::table('links')->insertOrIgnore($arr);
 
                 // clean up memory
@@ -65,7 +233,7 @@ class HomeController extends Controller
             $thuoc->link = $link->link;
             $thuoc->status = -1;
             $thuoc->save(); // save to have id
-            
+
             $motasp = $html->find('#motasanpham',0);
             if($motasp){
                 $thuoc->slug = substr($html->find('#motasanpham',0)->innertext, 0, -10);
@@ -73,10 +241,10 @@ class HomeController extends Controller
             }
 
             $attrs = $html->find('.attr-product tr');
-            
+
             foreach($attrs as $attr){
 
-                if (str_contains($attr->innertext, 'Danh mục:')) { 
+                if (str_contains($attr->innertext, 'Danh mục:')) {
                     // Danh mục:
                     $danh_muc = $attr->find('a',0);
                     $danh_muc_list = explode('/', $danh_muc->href);
@@ -90,7 +258,7 @@ class HomeController extends Controller
                         $danhmuc->save();
                     }
                     $thuoc->danhmuc_id = $danhmuc->id;
-                }else if (str_contains($attr->innertext, 'Thành phần chính:')) { 
+                }else if (str_contains($attr->innertext, 'Thành phần chính:')) {
                     // Thành phần chính:
                     $thanh_phan_chinhs = $attr->find('a');
                     foreach($thanh_phan_chinhs as $thanh_phan_chinh){
@@ -108,7 +276,7 @@ class HomeController extends Controller
                             ['thuoc_id' => $thuoc->id, 'thanhphan_id' => $thanhphanchinh->id]
                         ]);
                     }
-                }else if (str_contains($attr->innertext, 'Dạng bào chế:')) { 
+                }else if (str_contains($attr->innertext, 'Dạng bào chế:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Dạng bào chế:')){
                         // Dạng bào chế:
                         $dang_bao_che = $attr->find('td', 1)->innertext;
@@ -123,7 +291,7 @@ class HomeController extends Controller
 
                         $thuoc->dangbaoche_id = $dangbaoche->id;
                     }
-                }else if (str_contains($attr->innertext, 'Quy cách:')) { 
+                }else if (str_contains($attr->innertext, 'Quy cách:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Quy cách:')){
                         // Quy cách:
                         $quy_cach = $attr->find('td', 1)->innertext;
@@ -138,13 +306,13 @@ class HomeController extends Controller
 
                         $thuoc->quycach_id = $quycach->id;
                     }
-                }else if (str_contains($attr->innertext, 'Chỉ định:')) { 
+                }else if (str_contains($attr->innertext, 'Chỉ định:')) {
                     // Chỉ định:
                     $chi_dinh = $attr->find('td', 1);
 
                     $thuoc->chidinh = $chi_dinh->innertext;
 
-                }else if (str_contains($attr->innertext, 'Xuất xứ thương hiệu:')) { 
+                }else if (str_contains($attr->innertext, 'Xuất xứ thương hiệu:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Xuất xứ thương hiệu:')){
                         // Xuất xứ thương hiệu:
                         $xuatxuthuonghieu = $attr->find('td', 1)->innertext;
@@ -159,7 +327,7 @@ class HomeController extends Controller
 
                         $thuoc->xuatxu_id = $xuatxu->id;
                     }
-                }else if (str_contains($attr->innertext, 'Nhà sản xuất:')) { 
+                }else if (str_contains($attr->innertext, 'Nhà sản xuất:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Nhà sản xuất:')){
                         // Nhà sản xuất:
                         $nha_san_xuat = $attr->find('td', 1)->innertext;
@@ -176,22 +344,22 @@ class HomeController extends Controller
                             ['thuoc_id' => $thuoc->id, 'nhasanxuat_id' => $nhasanxuat->id]
                         ]);
                     }
-                }else if (str_contains($attr->innertext, 'Công dụng:')) { 
+                }else if (str_contains($attr->innertext, 'Công dụng:')) {
                     // Công dụng:
                     $cong_dung = $attr->find('td', 1)->innertext;
 
                     $thuoc->congdung = $cong_dung;
-                }else if (str_contains($attr->innertext, 'Thuốc cần kê toa:')) { 
+                }else if (str_contains($attr->innertext, 'Thuốc cần kê toa:')) {
                     // Thuốc cần kê toa:
                     $thuoc_can_ke_toa = $attr->find('td', 1)->innertext;
 
                     $thuoc->thuoccanketoa = $thuoc_can_ke_toa;
-                }else if (str_contains($attr->innertext, 'Số đăng ký:')) { 
+                }else if (str_contains($attr->innertext, 'Số đăng ký:')) {
                     // Số đăng ký:
                     $so_dang_ky = $attr->find('td', 1)->innertext;
 
                     $thuoc->sodangky = $so_dang_ky;
-                }else if (str_contains($attr->innertext, 'Nước sản xuất:')) { 
+                }else if (str_contains($attr->innertext, 'Nước sản xuất:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Nước sản xuất:')){
                         // Nước sản xuất:
                         $noi_san_xuat = $attr->find('td', 1)->innertext;
@@ -206,21 +374,21 @@ class HomeController extends Controller
 
                         $thuoc->noisanxuat_id = $noisanxuat->id;
                     }
-                }else if (str_contains($attr->innertext, 'Độ tuổi:')) { 
+                }else if (str_contains($attr->innertext, 'Độ tuổi:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Độ tuổi:')){
                         // Lưu ý:
                         $do_tuoi = $attr->find('td', 1)->innertext;
 
                         $thuoc->dotuoi = $do_tuoi;
                     }
-                }else if (str_contains($attr->innertext, 'Cảnh báo:')) { 
+                }else if (str_contains($attr->innertext, 'Cảnh báo:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Cảnh báo:')){
                         // Lưu ý:
                         $canh_bao = $attr->find('td', 1)->innertext;
 
                         $thuoc->canhbao = $canh_bao;
                     }
-                }else if (str_contains($attr->innertext, 'Chống chỉ định:')) { 
+                }else if (str_contains($attr->innertext, 'Chống chỉ định:')) {
                     if(str_contains($attr->find('td', 0)->innertext, 'Chống chỉ định:')){
                         // Lưu ý:
                         $chong_chi_dinh = $attr->find('td', 1)->innertext;
@@ -342,7 +510,7 @@ class HomeController extends Controller
     }
 
     public function processThuoc(){
-        
+
     }
 
     public function test(){
