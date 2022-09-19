@@ -59,8 +59,7 @@ class HomeController extends Controller
                     $link =  $story->href;
                     $slug = preg_replace('(https://truyenfull.vn/)','', $link );
                     $slug = preg_replace('(/)','', $slug );
-                    echo $link . "</br>";
-                    flush();
+                    
                     \DB::table('links')->insertOrIgnore([
                         'link' => $link,
                         'status' => 1,
@@ -70,16 +69,14 @@ class HomeController extends Controller
                 $pages = \DB::table('page_errors')->where('id',$i->id)->update([
                     'status' => 1,
                 ]);
-                echo "</br>";
-                echo "--------------------</br>";
-                echo "page" . $i->page . "</br>";
-                echo "--------------------</br>";
                 $html->clear();
                 unset($html);
+                echo '<span style="color:green"><b>'.$i->page.'...Done...</b></span><br />';
+            }else{
+                echo '<span style="color:red"><b>'.$i->page.'...Die...</b></span><br />';
             }
         }
-        sleep(1);
-        return back();
+        header("refresh: 1");
     }
 
     public function detail(){
