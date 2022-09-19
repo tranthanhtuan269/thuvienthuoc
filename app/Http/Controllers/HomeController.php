@@ -85,9 +85,10 @@ class HomeController extends Controller
     public function detail(){
         include_once('simple_html_dom.php');
 
-        $links = Link::where('status', 1)->take(5)->get();
+        $links = Link::where('status', 1)->take(10)->get();
         foreach($links as $link) {
             $slug = $link->slug;
+            
             $html = file_get_html("https://truyenfull.vn/". $slug);
             if($html) {
                 $check_slug = \DB::table('stories')->where('slug',$slug)->first();
@@ -196,9 +197,11 @@ class HomeController extends Controller
                     $link->status = 2;
                     $link->save();
                 }
+                echo '<span style="color:green"><b>'.$slug.'...Done...</b></span><br />';
                 $html->clear();
                 unset($html);
             }else{
+                echo '<span style="color:red"><b>'.$slug.'...Die...</b></span><br />';
                 $link->status = -1;
                 $link->save();
             }
