@@ -22,10 +22,12 @@ class HomeController extends Controller
         return view('index');
     }
 
+
+
     public function crawlLink(){
         include_once('simple_html_dom.php');
 
-        for($i = 1; $i < 1091;$i++) {
+        for($i = 1; $i < 1100;$i++) {
             $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i);
             if($html) {
                 $stories = $html->find('.truyen-title a');
@@ -37,7 +39,6 @@ class HomeController extends Controller
                     flush();
                     \DB::table('links')->insertOrIgnore([
                         'link' => $link,
-                        'status' => 1,
                         'slug' => $slug,
                     ]);
                 }
@@ -61,7 +62,7 @@ class HomeController extends Controller
 
         $pages = \DB::table('page_errors')->where('status', 0)->take(5)->get();
         foreach ($pages as $i) {
-            $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i->page);
+            $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-". $i->page . "/");
             if($html) {
                 $stories = $html->find('.truyen-title a');
                 foreach($stories as $story) {
@@ -72,12 +73,11 @@ class HomeController extends Controller
                     flush();
                     \DB::table('links')->insertOrIgnore([
                         'link' => $link,
-                        'status' => 1,
                         'slug' => $slug,
                     ]);
                 }
                 $pages = \DB::table('page_errors')->where('id',$i->id)->update([
-                    'status' => 1,
+                    'status' => 2,
                 ]);
                 echo "</br>";
                 echo "--------------------</br>";
@@ -94,7 +94,7 @@ class HomeController extends Controller
     public function detail(){
         include_once('simple_html_dom.php');
 
-        $links = \DB::table('links')->where('status', 1)->take(5)->get();
+        $links = \DB::table('links')->where('status', 0)->take(5)->get();
         foreach($links as $link) {
             $slug = $link->slug;
             $html = file_get_html("https://truyenfull.vn/". $slug);
@@ -165,7 +165,6 @@ class HomeController extends Controller
                             'author_id' => $author_id,
                             'full' => $full,
                             'content' => $content,
-                            'type' => 1,
                             'url_first_chapter' => $link_chapter_first,
                         ]);
                         $story = \DB::table('stories')->where('slug',$slug)->first();
@@ -179,14 +178,91 @@ class HomeController extends Controller
                             ]);
                         }
                     }
-                    // \DB::table('links')->where('slug',$slug)->update([
-                    //     'status' => 0,
-                    // ]);
+                    \DB::table('links')->where('slug',$slug)->update([
+                        'status' => 1,
+                    ]);
                 }
+                $html->clear();
+                unset($html);
             }else{
             }
-            $html->clear();
-            unset($html);
+        }
+        sleep(0.5);
+        return back();
+    }
+
+    public function chap() {
+        include_once('simple_html_dom.php');
+
+        $story = \DB::table('stories')->where('status', 0)->first();
+        for($i = 1;$i < 200; $i++) {
+            $html = file_get_html("https://truyenfull.vn/" .$story->slug. "/trang-" .$i);
+            if($html) {
+                $uls = $html->find('ul.list-chapter');
+                if($uls) {
+                    foreach ($uls as $ul) {
+                        $lis = $ul->find('li');
+                        if($lis) {
+                            foreach ($lis as $li) {
+                                $link = $li->find('a',0)->href;
+                                $slug = preg_replace('(https://truyenfull.vn/' . $story->slug .  ')','', $link );
+                                $slug = preg_replace('(/)','', $slug );
+                                $check = \DB::table('chapter')->where('story_id',$story->id)->where('slug',$slug)->first();
+                                if($check) {
+                                    \DB::table('stories')->where('id', $story->id)->update([
+                                        'status' => 1,
+                                    ]);
+                                    $html->clear();
+                                    unset($html);
+                                    break;
+                                }else {
+                                    \DB::table('chapter')->insertOrIgnore([
+                                        'slug' => $slug,
+                                        'story_id' => $story->id,
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                }
+                $html->clear();
+                unset($html);
+            }else {
+                if($i = 1) {
+                    \DB::table('stories')->where('id', $story->id)->update([
+                        'status' => 2,
+                    ]);
+                }else {
+                    \DB::table('stories')->where('id', $story->id)->update([
+                        'status' => 1,
+                    ]);
+                }
+                break;
+            }
+        }
+        sleep(0.5);
+        return back();
+    }
+
+    public function exist() {
+        $stories = \DB::table('list_truyenfull')->select('slug')->get();
+        foreach ($stories as $story){
+            $exist = \DB::table('stories')->where('slug', $story->slug)->first();
+            if($exist) {
+
+                \DB::table('stories')->where('slug', $exist->slug)->update([
+
+                ]);
+            }
+        }
+    }
+
+     public function resetStatus(){
+        $items = \DB::table('stories')->where('status', 1)->get();
+        foreach ($items as $item) {
+            \DB::table('stories')->where('id', $item->id)->update([
+                'status' => 0,
+            ]);
         }
     }
 

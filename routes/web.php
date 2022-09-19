@@ -22,6 +22,8 @@ Route::get('/crawl-anh', [HomeController::class, 'crawl3']);
 Route::get('/process', [HomeController::class, 'processThuoc']);
 Route::get('/test', [HomeController::class, 'test']);
 
-Route::get('/link', [HomeController::class, 'linkError'])->name('abc');
+Route::get('/resetStatus', [HomeController::class, 'resetStatus']);
+Route::get('/link', [HomeController::class, 'linkError']);
 Route::get('/detail', [HomeController::class, 'detail']);
+Route::get('/chap', [HomeController::class, 'chap']);
 
