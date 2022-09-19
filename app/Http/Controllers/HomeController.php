@@ -100,11 +100,18 @@ class HomeController extends Controller
                     Helper::curl_image($image, 'image-avatars/' . basename($image));
 
                     //full
-                    $full_text = $html->find('.info div',3)->find('span',0)->innertext;
-                    if ($full_text == "Full"){
-                        $full = 1;
-                    }else {
-                        $full = 0;
+                    $full = 0;
+                    $info1 = $html->find('.info div',3);
+                    if($info1){
+                        $info2 = $info1->find('span',0);
+                        if($info2){
+                            $full_text = $info2->innertext;
+                            if ($full_text == "Full"){
+                                $full = 1;
+                            }else {
+                                $full = 0;
+                            }
+                        }
                     }
 
                     //author
@@ -189,12 +196,15 @@ class HomeController extends Controller
                     $link->status = 2;
                     $link->save();
                 }
+                $html->clear();
+                unset($html);
             }else{
                 $link->status = -1;
                 $link->save();
             }
-            $html->clear();
-            unset($html);
+            sleep(1);
         }
+
+        header("refresh: 1");
     }
 }
