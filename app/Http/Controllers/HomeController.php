@@ -50,8 +50,10 @@ class HomeController extends Controller
     public function linkError () {
         include_once('simple_html_dom.php');
 
-        $pages = \DB::table('page_errors')->where('status', 0)->take(5)->get();
+        $pages = \App\Models\PageError::where('status', 0)->take(5)->get();
         foreach ($pages as $i) {
+            $i->status = -1;
+            $i->save();
             $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i->page);
             if($html) {
                 $stories = $html->find('.truyen-title a');
@@ -66,7 +68,7 @@ class HomeController extends Controller
                         'slug' => $slug,
                     ]);
                 }
-                $pages = \DB::table('page_errors')->where('id',$i->id)->update([
+                $pages = \App\Models\PageError::where('id',$i->id)->update([
                     'status' => 1,
                 ]);
                 $html->clear();
@@ -75,6 +77,7 @@ class HomeController extends Controller
             }else{
                 echo '<span style="color:red"><b>'.$i->page.'...Die...</b></span><br />';
             }
+            sleep(1);
         }
         header("refresh: 1");
     }
