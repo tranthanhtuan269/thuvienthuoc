@@ -15,15 +15,9 @@ use App\Http\Controllers\HomeController;
 |
 */
 
-Route::get('/', [HomeController::class, 'index']);
-Route::get('/crawl', [HomeController::class, 'crawl']);
-Route::get('/crawl-thuoc', [HomeController::class, 'crawl2']);
-Route::get('/crawl-anh', [HomeController::class, 'crawl3']);
-Route::get('/process', [HomeController::class, 'processThuoc']);
-Route::get('/test', [HomeController::class, 'test']);
-
 Route::get('/resetStatus', [HomeController::class, 'resetStatus']);
 Route::get('/link', [HomeController::class, 'linkError']);
 Route::get('/detail', [HomeController::class, 'detail']);
 Route::get('/chap', [HomeController::class, 'chap']);
+
 
