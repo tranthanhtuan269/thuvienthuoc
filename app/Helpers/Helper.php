@@ -65,37 +65,4 @@ Class Helper{
         fwrite($fp, $raw);
         fclose($fp);
     }
-
-    public function linkError () {
-        $pages = \DB::table('page_errors')->where('status', 0)->take(5)->get();
-        foreach ($pages as $i) {
-            $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i->page);
-            if($html) {
-                $stories = $html->find('.truyen-title a');
-                foreach($stories as $story) {
-                    $link =  $story->href;
-                    $slug = preg_replace('(https://truyenfull.vn/)','', $link );
-                    $slug = preg_replace('(/)','', $slug );
-                    echo $link . "</br>";
-                    flush();
-                    \DB::table('links')->insertOrIgnore([
-                        'link' => $link,
-                        'status' => 1,
-                        'slug' => $slug,
-                    ]);
-                }
-                $pages = \DB::table('page_errors')->where('id',$i->id)->update([
-                    'status' => 1,
-                ]);
-                echo "</br>";
-                echo "--------------------</br>";
-                echo "page" . $i . "</br>";
-                echo "--------------------</br>";
-                $html->clear();
-                unset($html);
-            }
-        }
-        Helper::linkError();
-    }
-
 }
