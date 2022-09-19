@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Link;
 use App\Helpers\Helper;
+use Illuminate\Support\Str;
 
 class HomeController extends Controller
 {
@@ -15,7 +16,7 @@ class HomeController extends Controller
     public function crawlLink(){
         include_once('simple_html_dom.php');
 
-        for($i = 1; $i < 1091;$i++) {
+        for($i = 1; $i <= 1092;$i++) {
             $html = file_get_html("https://truyenfull.vn/danh-sach/truyen-moi/trang-".$i);
             if($html) {
                 $stories = $html->find('.truyen-title a');
@@ -42,7 +43,7 @@ class HomeController extends Controller
                     'page' => $i,
                 ]);
             }
-            sleep(0.5);
+            sleep(1);
         }
     }
 
@@ -77,14 +78,14 @@ class HomeController extends Controller
                 unset($html);
             }
         }
-        sleep(0.5);
+        sleep(1);
         return back();
     }
 
     public function detail(){
         include_once('simple_html_dom.php');
 
-        $links = \DB::table('links')->where('status', 1)->take(5)->get();
+        $links = Link::where('status', 1)->take(5)->get();
         foreach($links as $link) {
             $slug = $link->slug;
             $html = file_get_html("https://truyenfull.vn/". $slug);
@@ -143,8 +144,8 @@ class HomeController extends Controller
                     //add
                     $total_chapter = 0;
                     if($html->find('.list-chapter li',0)){
-                        $link = $html->find('.list-chapter li',0)->find('a',0)->href ;
-                        $link_chapter_first = preg_replace('(https://truyenfull.vn/' . $slug .  ')','', $link);
+                        $story_link = $html->find('.list-chapter li',0)->find('a',0)->href ;
+                        $link_chapter_first = preg_replace('(https://truyenfull.vn/' . $slug .  ')','', $story_link);
                         $link_chapter_first = preg_replace('(/)','', $link_chapter_first);
                         \DB::table('stories')->insertOrIgnore([
                             'name' => $name,
@@ -163,14 +164,34 @@ class HomeController extends Controller
                         foreach($types as $type){
                             $name_type = $type->plaintext;
                             $type = \DB::table('types')->where('name',$name_type)->first();
-                            \DB::table('type_story')->insertOrIgnore([
-                                'type_id' => $type->id,
-                                'story_id' => $story->id,
-                            ]);
+                            if($type){
+                                \DB::table('type_story')->insertOrIgnore([
+                                    'type_id' => $type->id,
+                                    'story_id' => $story->id,
+                                ]);
+                            }else{
+                                $type = new \App\Models\Type;
+                                $type->slug = Str::slug($name_type, '-');
+                                $type->name = $name_type;
+                                $type->save();
+
+                                \DB::table('type_story')->insertOrIgnore([
+                                    'type_id' => $type->id,
+                                    'story_id' => $story->id,
+                                ]);
+                            }
                         }
                     }
+
+                    $link->status = 2;
+                    $link->save();
+                }else{
+                    $link->status = 2;
+                    $link->save();
                 }
             }else{
+                $link->status = -1;
+                $link->save();
             }
             $html->clear();
             unset($html);
