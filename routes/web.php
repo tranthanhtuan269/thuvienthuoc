@@ -19,5 +19,6 @@ Route::get('/resetStatus', [HomeController::class, 'resetStatus']);
 Route::get('/link', [HomeController::class, 'linkError']);
 Route::get('/detail', [HomeController::class, 'detail']);
 Route::get('/chap', [HomeController::class, 'chap']);
+Route::get('/exist', [HomeController::class, 'exist']);
 
 
